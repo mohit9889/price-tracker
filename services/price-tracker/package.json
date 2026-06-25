@@ -1,5 +1,21 @@
 {
   "name": "@price-tracker/price-tracker",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "start": "tsx index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@price-tracker/shared-types": "*",
+    "@price-tracker/shared-utils": "*",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.4.1",
+    "playwright": "^1.44.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "tsx": "^4.15.1",
+    "typescript": "^5.4.5"
+  }
 }

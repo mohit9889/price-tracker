@@ -4,4 +4,5 @@ export enum Store {
   CROMA = 'CROMA',
   RELIANCE = 'RELIANCE',
   VIJAY_SALES = 'VIJAY_SALES',
+  APPLE = 'APPLE',
 }

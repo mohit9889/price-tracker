@@ -1,0 +1,135 @@
+openapi: 3.0.0
+info:
+  title: Smart Price Tracker API
+  version: 1.0.0
+  description: API for managing products and tracking prices across e-commerce stores.
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+tags:
+  - name: Health
+    description: System health check
+  - name: Products
+    description: Product management
+  - name: Prices
+    description: Price history and tracking
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      responses:
+        '200':
+          description: List of products
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                image:
+                  type: string
+                urls:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      store:
+                        type: string
+                        enum: [AMAZON, FLIPKART, CROMA, RELIANCE, VIJAY_SALES, APPLE]
+                      url:
+                        type: string
+      responses:
+        '201':
+          description: Product created
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get a product by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details
+        '404':
+          description: Product not found
+    put:
+      tags:
+        - Products
+      summary: Update a product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Product updated
+    delete:
+      tags:
+        - Products
+      summary: Delete a product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Product deleted
+  /prices/history/{productId}:
+    get:
+      tags:
+        - Prices
+      summary: Get price history for a product
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Price history array
+  /prices/refresh/{productId}:
+    post:
+      tags:
+        - Prices
+      summary: Trigger price refresh for a product
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Refresh triggered

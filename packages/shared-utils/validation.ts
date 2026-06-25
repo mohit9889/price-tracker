@@ -10,6 +10,7 @@ export function getStoreFromUrl(url: string): Store | null {
     if (hostname.includes('croma.com')) return Store.CROMA;
     if (hostname.includes('reliancedigital.in')) return Store.RELIANCE;
     if (hostname.includes('vijaysales.com')) return Store.VIJAY_SALES;
+    if (hostname.includes('apple.com')) return Store.APPLE;
     
     return null;
   } catch (e) {
