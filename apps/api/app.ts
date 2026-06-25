@@ -7,6 +7,7 @@ import { env } from './config/env';
 import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './middleware/logger';
+import { apiRateLimiter } from './middleware/rateLimiter';
 import healthRoutes from './routes/health.routes';
 import productsRoutes from './routes/products.routes';
 import pricesRoutes from './routes/prices.routes';
@@ -15,6 +16,7 @@ const app = express();
 
 // Middleware
 app.use(cors());
+app.use(apiRateLimiter);
 app.use(express.json());
 app.use(logger);
 
