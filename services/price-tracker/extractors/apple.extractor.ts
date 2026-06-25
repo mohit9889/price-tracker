@@ -3,8 +3,12 @@ import { openPage, extractText, extractAttribute } from '../scrapers/playwright'
 import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
+import { ExtractedProductData } from '.';
 
-export const extractApple = async (context: BrowserContext, url: string) => {
+export const extractApple = async (
+  context: BrowserContext,
+  url: string,
+): Promise<ExtractedProductData> => {
   const page = await openPage(context, url);
   try {
     const productData = await page.evaluate(() => {

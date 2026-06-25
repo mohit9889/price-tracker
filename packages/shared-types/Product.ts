@@ -10,6 +10,8 @@ export interface Product {
   name: string;
   image: string;
   urls: ProductUrl[];
+  /** ISO 8601 string — wire format from the API (JSON serialisation of a Date). */
   createdAt: string;
+  /** ISO 8601 string — wire format from the API (JSON serialisation of a Date). */
   updatedAt: string;
 }

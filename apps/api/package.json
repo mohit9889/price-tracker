@@ -8,6 +8,7 @@
     "start": "node dist/app.js"
   },
   "dependencies": {
+    "@price-tracker/shared-models": "^1.0.0",
     "@price-tracker/shared-types": "*",
     "@price-tracker/shared-utils": "*",
     "cors": "^2.8.5",

@@ -1,23 +1,23 @@
-import mongoose from 'mongoose';
+import { PriceHistory } from '@price-tracker/shared-models';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
 
-const priceHistorySchema = new mongoose.Schema({
-  productId: { type: String, required: true },
-  store: { type: String, enum: Object.values(Store), required: true },
-  price: { type: Number, required: true },
-  timestamp: { type: String, required: true },
-});
-
-const PriceHistoryModel = mongoose.models.PriceHistory || mongoose.model('PriceHistory', priceHistorySchema);
-
-export const savePriceHistory = async (productId: string, store: Store, price: number) => {
+/**
+ * Save a price history record for a product.
+ * Returns `true` on success, `false` on failure so callers can track partial failures.
+ */
+export const savePriceHistory = async (
+  productId: string,
+  store: Store,
+  price: number,
+): Promise<boolean> => {
   try {
-    const timestamp = new Date().toISOString();
-    const history = new PriceHistoryModel({ productId, store, price, timestamp });
+    const history = new PriceHistory({ productId, store, price, timestamp: new Date() });
     await history.save();
-    logger.info(`Saved price history for product ${productId} at ${store}: ${price}`);
+    logger.info(`Saved price history for product ${productId} at ${store}: ₹${price}`);
+    return true;
   } catch (error) {
-    logger.error(`Failed to save price history for ${productId}:`, error);
+    logger.error(`Failed to save price history for ${productId} @ ${store}:`, error);
+    return false;
   }
 };

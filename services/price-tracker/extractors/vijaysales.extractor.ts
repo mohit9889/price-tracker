@@ -3,16 +3,22 @@ import { openPage } from '../scrapers/playwright';
 import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
+import { ExtractedProductData } from '.';
 
-export const extractVijaySales = async (context: BrowserContext, url: string) => {
+export const extractVijaySales = async (
+  context: BrowserContext,
+  url: string,
+): Promise<ExtractedProductData> => {
   const page = await openPage(context, url);
   try {
     // Vijay Sales renders content server-side, but class names don't match
     // the guessed selectors. The price appears as "VSP ₹137990" and "MRP ₹144900"
     // in the rendered HTML. We extract it by scanning text content.
 
-    // Wait a bit for any hydration
-    await page.waitForTimeout(3000);
+    // Wait for any client-side hydration before scanning
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() =>
+      logger.warn('Vijay Sales: networkidle timeout, proceeding with current DOM state')
+    );
 
     const productData = await page.evaluate(() => {
       let priceText = '';

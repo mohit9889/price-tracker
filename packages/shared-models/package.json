@@ -1,0 +1,10 @@
+{
+  "name": "@price-tracker/shared-models",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "dependencies": {
+    "@price-tracker/shared-types": "*",
+    "mongoose": "^8.4.1"
+  }
+}

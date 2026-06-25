@@ -3,8 +3,12 @@ import { openPage } from '../scrapers/playwright';
 import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
+import { ExtractedProductData } from '.';
 
-export const extractFlipkart = async (context: BrowserContext, url: string) => {
+export const extractFlipkart = async (
+  context: BrowserContext,
+  url: string,
+): Promise<ExtractedProductData> => {
   const page = await openPage(context, url);
   try {
     // Flipkart uses heavily obfuscated, hashed CSS class names that change
@@ -42,9 +46,11 @@ export const extractFlipkart = async (context: BrowserContext, url: string) => {
       };
     }
 
-    // Strategy 2: Wait for SPA hydration and look for price by text pattern
+    // Strategy 2: Wait for SPA hydration then scan DOM for price patterns
     logger.warn('Flipkart JSON-LD not found, trying DOM text extraction...');
-    await page.waitForTimeout(5000);
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() =>
+      logger.warn('Flipkart: networkidle timeout, proceeding with current DOM state')
+    );
 
     const priceData = await page.evaluate(() => {
       // Find elements containing ₹ followed by digits

@@ -7,6 +7,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@price-tracker/shared-models": "^1.0.0",
     "@price-tracker/shared-types": "*",
     "@price-tracker/shared-utils": "*",
     "dotenv": "^16.4.5",

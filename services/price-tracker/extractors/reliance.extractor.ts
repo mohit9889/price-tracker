@@ -3,8 +3,12 @@ import { openPage, extractText } from '../scrapers/playwright';
 import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
+import { ExtractedProductData } from '.';
 
-export const extractReliance = async (context: BrowserContext, url: string) => {
+export const extractReliance = async (
+  context: BrowserContext,
+  url: string,
+): Promise<ExtractedProductData> => {
   const page = await openPage(context, url);
   try {
     // Reliance Digital is a Vue.js SPA. Product data is NOT in the visible DOM
@@ -37,9 +41,11 @@ export const extractReliance = async (context: BrowserContext, url: string) => {
       };
     }
 
-    // Fallback: try waiting for the SPA to hydrate
+    // Fallback: wait for SPA hydration then try DOM selectors
     logger.warn('Reliance JSON-LD not found, trying DOM selectors...');
-    await page.waitForTimeout(5000);
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() =>
+      logger.warn('Reliance: networkidle timeout, proceeding with current DOM state')
+    );
     const title = await extractText(page, 'h1');
     const priceStr = await extractText(page, '[class*="price"], [class*="Price"]');
 
