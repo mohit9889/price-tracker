@@ -7,8 +7,7 @@ export class PriceService {
   }
 
   async recordPrice(productId: string, store: Store, price: number) {
-    const timestamp = new Date().toISOString();
-    return priceRepository.createPriceHistory(productId, store, price, timestamp);
+    return priceRepository.createPriceHistory({ productId, store, price, timestamp: new Date() });
   }
 
   calculateLowestPrice(prices: any[]) {

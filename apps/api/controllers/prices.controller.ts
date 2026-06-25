@@ -13,10 +13,9 @@ export class PricesController {
 
   refreshPrices = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // In a real scenario, this would trigger the scraper service for this product.
-      // For MVP, we might just return an accepted status or simulate it.
-      // This is a placeholder since the scraper runs independently.
-      res.status(202).json({ message: 'Price refresh triggered' });
+      // @todo Wire up to the scraper service when it exposes a trigger interface.
+      // Returning 501 until this is implemented — never return 2xx for a no-op.
+      res.status(501).json({ success: false, message: 'Price refresh not yet implemented' });
     } catch (error) {
       next(error);
     }
