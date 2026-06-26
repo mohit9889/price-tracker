@@ -24,12 +24,12 @@ export type ExtractorFunction = (
 /** Returns the correct extractor function for a given store. Throws for unknown stores. */
 export const getExtractor = (store: Store): ExtractorFunction => {
   switch (store) {
-    case Store.AMAZON:    return extractAmazon;
-    case Store.FLIPKART:  return extractFlipkart;
-    case Store.CROMA:     return extractCroma;
-    case Store.RELIANCE:  return extractReliance;
+    case Store.AMAZON: return extractAmazon;
+    case Store.FLIPKART: return extractFlipkart;
+    case Store.CROMA: return extractCroma;
+    case Store.RELIANCE: return extractReliance;
     case Store.VIJAY_SALES: return extractVijaySales;
-    case Store.APPLE:     return extractApple;
+    case Store.APPLE: return extractApple;
     default:
       throw new Error(`No extractor found for store: ${store}`);
   }

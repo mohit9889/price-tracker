@@ -4,6 +4,11 @@ import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
 import { ExtractedProductData } from '.';
+import { extractJsonLdProduct } from '../utils/Jsonld';
+
+// Flipkart is a React SPA with heavily obfuscated, hash-based CSS class names
+// that rotate with every deployment. Class-name selectors are therefore useless.
+// We rely on JSON-LD first, then structured DOM scanning as a fallback.
 
 export const extractFlipkart = async (
   context: BrowserContext,
@@ -11,76 +16,71 @@ export const extractFlipkart = async (
 ): Promise<ExtractedProductData> => {
   const page = await openPage(context, url);
   try {
-    // Flipkart uses heavily obfuscated, hashed CSS class names that change
-    // with every deployment. Instead of guessing class names, we use two strategies:
-    // 1. JSON-LD structured data (if available)
-    // 2. Evaluate the DOM looking for price patterns in text content
+    // Strategy 1: JSON-LD — poll until it appears (SPA injects it after hydration)
+    const jsonLd = await extractJsonLdProduct(page, 12000);
 
-    // Strategy 1: JSON-LD
-    const jsonLd = await page.evaluate(() => {
-      const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-      for (const script of scripts) {
-        try {
-          const data = JSON.parse(script.textContent || '');
-          if (data['@type'] === 'Product' && data.offers) {
-            return data;
-          }
-        } catch (e) { /* ignore */ }
-      }
-      return null;
-    });
-
-    if (jsonLd) {
-      const offers = Array.isArray(jsonLd.offers) ? jsonLd.offers[0] : jsonLd.offers;
-      const price = parseFloat(offers?.price || '0');
-      const title = jsonLd.name || null;
-      const image = Array.isArray(jsonLd.image) ? jsonLd.image[0] : jsonLd.image || null;
-
-      logger.info(`Flipkart JSON-LD extracted: ${title} — ₹${price}`);
+    if (jsonLd?.price) {
+      const price = parseFloat(jsonLd.price || '0');
+      logger.info(`Flipkart JSON-LD extracted: "${jsonLd.title}" — ₹${price}`);
       return {
         store: Store.FLIPKART,
-        productName: title,
+        productName: jsonLd.title,
         price,
-        image,
-        url
+        image: jsonLd.image,
+        url,
       };
     }
 
-    // Strategy 2: Wait for SPA hydration then scan DOM for price patterns
-    logger.warn('Flipkart JSON-LD not found, trying DOM text extraction...');
-    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() =>
-      logger.warn('Flipkart: networkidle timeout, proceeding with current DOM state')
-    );
+    // Strategy 2: DOM scan — Flipkart's SPA may still be hydrating.
+    // Wait for an h1 (product title) to appear before scanning.
+    logger.warn('Flipkart JSON-LD not found, trying DOM scan...');
+    await page
+      .waitForSelector('h1', { timeout: 12000 })
+      .catch(() => logger.warn('Flipkart: h1 not found within timeout'));
 
     const priceData = await page.evaluate(() => {
-      // Find elements containing ₹ followed by digits
-      const allElements = document.querySelectorAll('*');
       let priceText = '';
       let titleText = '';
+      let imageUrl = '';
 
+      // Price: scan leaf-level elements for the ₹N,NNN pattern.
+      // Leaf elements avoid matching parent containers that aggregate multiple
+      // price strings (e.g. "₹1,000 ₹900 10% off").
+      const allElements = [...document.querySelectorAll('*')];
       for (const el of allElements) {
+        // Skip elements that have child elements — we only want text leaves
+        if (el.children.length > 0) continue;
         const text = (el as HTMLElement).innerText?.trim() || '';
-        // Look for price pattern: ₹ followed by digits with commas
-        if (!priceText && /^₹[\d,]+$/.test(text) && text.length > 3) {
+        if (!priceText && /^₹[\d,]+$/.test(text) && text.replace(/[₹,]/g, '').length >= 3) {
           priceText = text;
         }
       }
 
-      // Title is usually in an h1 or a span with a large font
+      // Title: prefer h1, fall back to <title> tag
       const h1 = document.querySelector('h1');
-      if (h1) titleText = h1.innerText?.trim() || '';
-      // Also check the title tag
-      if (!titleText) titleText = document.title.split('-')[0].trim();
+      titleText = h1?.innerText?.trim() || document.title.split('-')[0].trim();
 
-      return { priceText, titleText };
+      // Image: og:image meta tag is reliable on Flipkart
+      const metaImage = document.querySelector('meta[property="og:image"]');
+      imageUrl = metaImage?.getAttribute('content') || '';
+
+      return { priceText, titleText, imageUrl };
     });
+
+    const price = parsePrice(priceData.priceText);
+
+    if (price > 0) {
+      logger.info(`Flipkart DOM extracted: "${priceData.titleText}" — ₹${price}`);
+    } else {
+      logger.warn(`Flipkart extraction yielded no price for: ${url}`);
+    }
 
     return {
       store: Store.FLIPKART,
       productName: priceData.titleText || null,
-      price: parsePrice(priceData.priceText || ''),
-      image: null,
-      url
+      price,
+      image: priceData.imageUrl || null,
+      url,
     };
   } finally {
     await page.close();
