@@ -1,4 +1,4 @@
-import { ExtractedProductData } from '.';
+import { ExtractedProductData } from '../extractors/index';
 
 /** Find the entry with the lowest price. Returns null for an empty array. */
 export const findLowestPrice = (prices: ExtractedProductData[]): ExtractedProductData | null => {

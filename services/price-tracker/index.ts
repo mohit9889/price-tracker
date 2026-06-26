@@ -26,8 +26,25 @@ async function processInBatches<T>(
   }
 }
 
+/**
+ * Parse the optional --productId=<id> CLI argument.
+ * When present, only that product is scraped (used by the API refresh endpoint).
+ * When absent, all products are scraped (used by the GitHub Actions scheduler).
+ */
+function parseProductIdArg(): string | null {
+  const arg = process.argv.find((a) => a.startsWith('--productId='));
+  return arg ? arg.split('=')[1] : null;
+}
+
 const runTracker = async () => {
-  logger.info('Starting price tracker service...');
+  const singleProductId = parseProductIdArg();
+
+  if (singleProductId) {
+    logger.info(`Starting price tracker for single product: ${singleProductId}`);
+  } else {
+    logger.info('Starting price tracker service (all products)...');
+  }
+
   const dbUrl = process.env.DBURL;
   const dbName = process.env.DB_NAME || 'smart-price-tracker';
 
@@ -40,8 +57,19 @@ const runTracker = async () => {
     await mongoose.connect(dbUrl, { dbName });
     logger.info('Connected to MongoDB');
 
-    const products = await Product.find({});
-    logger.info(`Found ${products.length} products to track.`);
+    // Fetch one product or all products depending on the CLI flag
+    const products = singleProductId
+      ? await Product.find({ _id: singleProductId })
+      : await Product.find({});
+
+    if (products.length === 0) {
+      logger.warn(singleProductId
+        ? `No product found with id: ${singleProductId}`
+        : 'No products to track.');
+      return;
+    }
+
+    logger.info(`Found ${products.length} product(s) to track.`);
 
     let successCount = 0;
     let failCount = 0;
@@ -64,6 +92,7 @@ const runTracker = async () => {
 
   } catch (error) {
     logger.error('Fatal error in tracker execution:', error);
+    process.exit(1);
   } finally {
     await closeBrowser();
     await mongoose.disconnect();
@@ -72,3 +101,4 @@ const runTracker = async () => {
 };
 
 runTracker();
+

@@ -2,12 +2,15 @@ name: Scheduled Price Check
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours
-  workflow_dispatch: # Allow manual trigger
+    - cron: '0 */6 * * *' # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch: # Allow manual trigger from the GitHub Actions UI
 
 jobs:
   check-prices:
+    name: Run Price Tracker
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # Abort if scraping hangs (e.g. bot-detection loop)
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,3 +32,10 @@ jobs:
         env:
           DBURL: ${{ secrets.DBURL }}
           DB_NAME: smart-price-tracker
+          NODE_ENV: production
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Price tracker job failed. Check the logs above for details."
+          echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
