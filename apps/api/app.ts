@@ -14,6 +14,9 @@ import pricesRoutes from './routes/prices.routes';
 
 const app = express();
 
+// Trust proxies for Render load balancer (required for express-rate-limit)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors());
 app.use(apiRateLimiter);
