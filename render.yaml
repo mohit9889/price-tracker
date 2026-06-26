@@ -5,6 +5,8 @@ services:
     buildCommand: "npm ci --include=dev && npx playwright install chromium"
     startCommand: "npx tsx apps/api/app.ts"
     envVars:
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"
       - key: NODE_ENV
         value: production
       - key: DB_NAME
