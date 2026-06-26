@@ -97,6 +97,7 @@ const runTracker = async () => {
     await closeBrowser();
     await mongoose.disconnect();
     logger.info('Disconnected from MongoDB.');
+    process.exit(0);
   }
 };
 
