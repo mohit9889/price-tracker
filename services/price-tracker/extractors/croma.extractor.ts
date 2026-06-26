@@ -1,5 +1,5 @@
 import { BrowserContext } from 'playwright';
-import { openPage, extractText, extractAttribute } from '../scrapers/playwright';
+import { openPage, extractFirstText, extractFirstAttribute } from '../scrapers/playwright';
 import { parsePrice } from '../utils/helpers';
 import { Store } from '@price-tracker/shared-types';
 import { logger } from '../utils/logger';
@@ -17,7 +17,7 @@ const TITLE_SELECTORS = [
 const PRICE_SELECTORS = [
   'span.amount',
   '[class*="offer-price"]',
-  '[class*="cp-price"]',  // Croma frequently tweaks class names
+  '[class*="cp-price"]',
   '[data-testid="price"]',
 ];
 
@@ -48,31 +48,19 @@ export const extractCroma = async (
       };
     }
 
-    // Strategy 2: DOM selectors — wait for title to confirm SSR paint is done
+    // Strategy 2: DOM selectors — race all in parallel
     logger.warn('Croma JSON-LD not found, falling back to DOM selectors...');
     await page
       .waitForSelector(TITLE_SELECTORS.join(', '), { timeout: 10000 })
       .catch(() => logger.warn('Croma: title selector not found within timeout'));
 
-    let title: string | null = null;
-    for (const sel of TITLE_SELECTORS) {
-      const text = await extractText(page, sel);
-      if (text) { title = text; break; }
-    }
+    const [title, priceStr, image] = await Promise.all([
+      extractFirstText(page, TITLE_SELECTORS),
+      extractFirstText(page, PRICE_SELECTORS),
+      extractFirstAttribute(page, IMAGE_SELECTORS, 'src'),
+    ]);
 
-    let priceStr = '';
-    for (const sel of PRICE_SELECTORS) {
-      const text = await extractText(page, sel);
-      if (text) { priceStr = text; break; }
-    }
-
-    let image: string | null = null;
-    for (const sel of IMAGE_SELECTORS) {
-      const src = await extractAttribute(page, sel, 'src');
-      if (src) { image = src; break; }
-    }
-
-    const price = parsePrice(priceStr);
+    const price = parsePrice(priceStr ?? '');
 
     if (price > 0) {
       logger.info(`Croma DOM extracted: "${title}" — ₹${price}`);
