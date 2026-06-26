@@ -38,22 +38,45 @@ export const extractAmazon = async (
       .waitForSelector(TITLE_SELECTORS.join(', '), { timeout: 15000 })
       .catch(() => logger.warn('Amazon: title selector not found within timeout'));
 
-    // Race all selectors in parallel — total wait = one timeout, not N × timeout
+    // Strategy 1: Race all selectors in parallel
     const [title, priceStr, image] = await Promise.all([
       extractFirstText(page, TITLE_SELECTORS),
       extractFirstText(page, PRICE_SELECTORS),
       extractFirstAttribute(page, IMAGE_SELECTORS, 'src'),
     ]);
 
-    const price = parsePrice(priceStr ?? '');
+    let price = parsePrice(priceStr ?? '');
+    let finalTitle = title;
+    let finalImage = image;
+
+    // Strategy 2: If selectors fail, try a DOM scan (Amazon changes DOM dynamically)
+    if (price === 0) {
+      logger.warn('Amazon explicit selectors failed, trying DOM scan...');
+      const fallbackData = await page.evaluate(() => {
+        let priceText = '';
+        const allElements = [...document.querySelectorAll('*')];
+        for (const el of allElements) {
+          if (el.children.length > 0) continue;
+          const text = (el as HTMLElement).innerText?.trim() || '';
+          if (!priceText && /^₹[\d,]+$/.test(text) && text.replace(/[₹,]/g, '').length >= 4) {
+            priceText = text;
+            break;
+          }
+        }
+        const titleText = document.title.split(':')[0].trim();
+        return { priceText, titleText };
+      });
+      price = parsePrice(fallbackData.priceText);
+      finalTitle = finalTitle || fallbackData.titleText;
+    }
 
     if (price > 0) {
-      logger.info(`Amazon extracted: "${title}" — ₹${price}`);
+      logger.info(`Amazon extracted: "${finalTitle}" — ₹${price}`);
     } else {
       logger.warn(`Amazon extraction yielded no price for: ${url}`);
     }
 
-    return { store: Store.AMAZON, productName: title, price, image, url };
+    return { store: Store.AMAZON, productName: finalTitle, price, image: finalImage, url };
   } finally {
     await page.close();
   }
