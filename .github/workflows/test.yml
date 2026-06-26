@@ -23,4 +23,6 @@ jobs:
         run: npm ci
 
       - name: Check types
-        run: npx tsc --noEmit
+        run: |
+          npx tsc --noEmit -p apps/api/tsconfig.json
+          npx tsc --noEmit -p services/price-tracker/tsconfig.json
