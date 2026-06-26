@@ -54,7 +54,10 @@ export const openPage = async (context: BrowserContext, url: string): Promise<Pa
   });
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Wait only for the network response headers (commit) rather than the entire
+    // DOM to parse. E-commerce sites have heavy analytics that often prevent
+    // domcontentloaded from firing on cloud servers, causing 30s timeouts.
+    await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
   } catch (error) {
     logger.error(`Navigation failed for ${url}:`, error);
     await page.close();
